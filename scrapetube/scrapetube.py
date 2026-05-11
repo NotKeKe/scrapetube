@@ -1,6 +1,6 @@
 import json
 import time
-from typing import Generator
+from typing import Generator, Optional
 
 import requests
 from typing_extensions import Literal
@@ -323,5 +323,97 @@ def search_dict(partial: dict, search_key: str) -> Generator[dict, None, None]:
                 stack.append(value)
 
 
+def _lockup_duration_text(lockup: dict) -> str:
+    try:
+        overlays = (
+            lockup.get("contentImage", {})
+            .get("thumbnailViewModel", {})
+            .get("overlays", [])
+        )
+        for overlay in overlays:
+            bottom_overlay = overlay.get("thumbnailBottomOverlayViewModel")
+            if not bottom_overlay:
+                continue
+            for badge in bottom_overlay.get("badges", []):
+                badge_view_model = badge.get("thumbnailBadgeViewModel")
+                if badge_view_model and badge_view_model.get("text"):
+                    return badge_view_model["text"]
+    except (TypeError, KeyError, AttributeError):
+        pass
+    return ""
+
+
+def _lockup_view_count_text(lockup: dict) -> str:
+    try:
+        rows = (
+            lockup.get("metadata", {})
+            .get("lockupMetadataViewModel", {})
+            .get("metadata", {})
+            .get("contentMetadataViewModel", {})
+            .get("metadataRows", [])
+        )
+        parts = []
+        for row in rows:
+            for part in row.get("metadataParts", []):
+                text = part.get("text", {}).get("content")
+                if text:
+                    parts.append(text)
+        return parts[0] if parts else ""
+    except (TypeError, KeyError, AttributeError):
+        return ""
+
+
+def _lockup_to_video_renderer(lockup: dict) -> Optional[dict]:
+    if not isinstance(lockup, dict):
+        return None
+
+    content_type = lockup.get("contentType") or ""
+    if "VIDEO" not in content_type:
+        return None
+
+    video_id = lockup.get("contentId")
+    if not video_id:
+        return None
+
+    title_content = (
+        lockup.get("metadata", {})
+        .get("lockupMetadataViewModel", {})
+        .get("title", {})
+        .get("content")
+    )
+    title = {"simpleText": title_content} if title_content else {"runs": []}
+
+    view_count_text = _lockup_view_count_text(lockup)
+    duration_text = _lockup_duration_text(lockup)
+
+    video = {
+        "videoId": video_id,
+        "title": title,
+    }
+    if view_count_text:
+        video["viewCountText"] = {"simpleText": view_count_text}
+    if duration_text:
+        video["lengthText"] = {"simpleText": duration_text}
+    return video
+
+
 def get_videos_items(data: dict, selector: str) -> Generator[dict, None, None]:
-    return search_dict(data, selector)
+    if selector != "videoRenderer":
+        yield from search_dict(data, selector)
+        return
+
+    seen = set()
+    for item in search_dict(data, "videoRenderer"):
+        video_id = item.get("videoId") if isinstance(item, dict) else None
+        if video_id and video_id not in seen:
+            seen.add(video_id)
+            yield item
+
+    for lockup in search_dict(data, "lockupViewModel"):
+        converted = _lockup_to_video_renderer(lockup)
+        if not converted:
+            continue
+        video_id = converted["videoId"]
+        if video_id not in seen:
+            seen.add(video_id)
+            yield converted
