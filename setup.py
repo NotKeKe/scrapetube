@@ -33,7 +33,7 @@ setup(
     install_requires=requirements,
 
     extras_require={
-        "async": ["httpx>=0.24.0"]  # 當使用者指定 [async] 時，才會額外多裝這些套件
+        "async": ["httpx", "orjson"] # 指定[async]
     },
 
     python_requires=">=3.6",
