@@ -1,9 +1,20 @@
-from .scrapetube_sync import get_json_from_html, type_property_map, search_dict, get_next_data, get_videos_items, get_page_context
+from ..scrapetube import get_json_from_html, type_property_map, search_dict, get_next_data, get_videos_items, get_page_context
 
 import orjson
 import httpx
 import asyncio
-from typing import AsyncGenerator, Optional, Literal
+from typing import AsyncGenerator, Optional
+from typing_extensions import Literal
+
+__all__ = [
+    "get_session",
+    "get_initial_data",
+    "get_ajax_data",
+    "get_video",
+    "get_videos",
+    "get_channel",
+    "get_playlist",
+]
 
 # YouTube 先前更新了 shorts 的 JSON tree，但 pypi 上的 scrapetube 一直沒有更新
 # https://github.com/dermasmid/scrapetube/issues/65
@@ -130,7 +141,7 @@ async def get_channel(channel_id: str = None,
         yield video
 
 async def get_playlist(
-    playlist_id: str, limit: int = None, sleep: int = 1
+    playlist_id: str, limit: Optional[int] = None, sleep: int = 1
 ) -> AsyncGenerator[dict, None]:
     """Get videos for a playlist.
 
