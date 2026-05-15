@@ -52,6 +52,13 @@ async def get_ajax_data(
 async def get_video(
     id: str,
 ) -> dict:
+    """Get a single video.
+
+    Parameters:
+        id (``str``):
+            The video id from the video you want to get.
+    """
+
     try:
         session = get_session()
         url = f"https://www.youtube.com/watch?v={id}"
@@ -123,6 +130,47 @@ async def get_channel(channel_id: str = None,
     sort_by: Literal["newest", "oldest", "popular"] = "newest",
     content_type: Literal["videos", "shorts", "streams"] = "videos",
 ) -> AsyncGenerator[dict, None]:
+    """Get videos for a channel.
+
+    Parameters:
+        channel_id (``str``, *optional*):
+            The channel id from the channel you want to get the videos for.
+            If you prefer to use the channel url instead, see ``channel_url`` below.
+
+        channel_url (``str``, *optional*):
+            The url to the channel you want to get the videos for.
+            Since there is a few type's of channel url's, you can use the one you want
+            by passing it here instead of using ``channel_id``.
+
+        channel_username (``str``, *optional*):
+            The username from the channel you want to get the videos for.
+            Ex. ``LinusTechTips`` (without the @).
+            If you prefer to use the channel url instead, see ``channel_url`` above.
+
+        limit (``int``, *optional*):
+            Limit the number of videos you want to get.
+
+        sleep (``int``, *optional*):
+            Seconds to sleep between API calls to youtube, in order to prevent getting blocked.
+            Defaults to 1.
+
+        proxies (``dict``, *optional*):
+            A dictionary with the proxies you want to use. Ex:
+            ``{'https': 'http://username:password@101.102.103.104:3128'}``
+        
+        sort_by (``str``, *optional*):
+            In what order to retrieve to videos. Pass one of the following values.
+            ``"newest"``: Get the new videos first.
+            ``"oldest"``: Get the old videos first.
+            ``"popular"``: Get the popular videos first. Defaults to "newest".
+
+        content_type (``str``, *optional*):
+            In order to get content type. Pass one of the following values.
+            ``"videos"``: Videos
+            ``"shorts"``: Shorts
+            ``"streams"``: Streams
+    """
+
     base_url = ""
     if channel_url:
         base_url = channel_url
